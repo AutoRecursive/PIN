@@ -1,41 +1,124 @@
-const {app} = require('electron').remote
-
-const {Button} = require('./Buttons/Button')
-const ChangeThemeButton = require('./Buttons/ChangeThemeButton').ChangeThemeButton
-const MinimizeButton = require('./Buttons/MinimizeButton').MinimizeButton
-const SaveButton = require('./Buttons/SaveLoadButton').SaveButton
-const LoadButton = require('./Buttons/SaveLoadButton').LoadButton
-
-const VditorComponent = require('./VditorComponent').VditorComponent
+const { app } = require('@electron/remote')
+const { Button } = require('./Buttons/Button')
+const { ChangeThemeButton } = require('./Buttons/ChangeThemeButton')
+const { MinimizeButton } = require('./Buttons/MinimizeButton')
+const { SaveButton, LoadButton } = require('./Buttons/SaveLoadButton')
+const { VditorComponent } = require('./VditorComponent')
+const { SearchBox } = require('./SearchBox')
 
 class PIN {
-    change_theme_buttons = new Map();
-    button_anchors = ['.top-bar', '#btn-minimize', '.dark-btn'];
+  constructor() {
+    // Base button anchors that should change color with theme
+    this.buttonAnchors = ['.top-bar', '#btn-minimize', '.dark-btn']
+    
+    // Store theme buttons
+    this.themeButtons = {}
+    
+    // Initialize components
+    this.vditor = new VditorComponent()
+    this.initButtons()
+    this.initThemes()
+    this.initSearchBox()
+  }
 
-    addChangeThemeButton(theme) {
-        let change_color_button_id = 'btn-theme-' + theme["theme"];
-        let current_anchors = this.button_anchors;
-        let update_theme = function (color) {
-            current_anchors.forEach((e) => {
-                document.querySelector(e).style.backgroundColor = color
-            })
+  /**
+   * Initialize all buttons
+   */
+  initButtons() {
+    this.btnMinimize = new MinimizeButton('btn-minimize', this.vditor.getElement())
+    this.btnNew = new Button('new-window', app.appendWindow)
+    this.btnSave = new SaveButton(this.vditor.getVditor(), 'btn-save')
+    this.btnLoad = new LoadButton(this.vditor.getVditor(), 'btn-load', this.btnSave)
+    this.initKeyboardShortcuts()
+  }
+
+  /**
+   * Initialize keyboard shortcuts
+   */
+  initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger if user is typing in input fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return
+      }
+      
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modifierKey = isMac ? e.metaKey : e.ctrlKey
+      
+      // Cmd+S or Ctrl+S for save
+      if (modifierKey && e.key === 's') {
+        e.preventDefault()
+        if (this.btnSave) {
+          this.btnSave.saveFile(this.vditor.getVditor())
         }
-        this.change_theme_buttons[change_color_button_id] = new ChangeThemeButton(change_color_button_id, theme["color"], update_theme);
-    }
+      }
+    })
+  }
 
-    constructor() {
-        this.buttons = [];
-        this.vditor = new VditorComponent();
-        this.btn_minimize = new MinimizeButton('btn-minimize', this.vditor.getElement());
-        this.themes = app.loadThemes();
-        this.themes.forEach((theme) => this.button_anchors.push('#' + 'btn-theme-' + theme["theme"]));
-        this.themes.forEach((theme) => this.addChangeThemeButton(theme));
-        console.log(this.change_theme_buttons)
+  /**
+   * Initialize themes and theme buttons
+   */
+  initThemes() {
+    const themes = app.loadThemes()
+    
+    // Add theme button anchors
+    themes.forEach(theme => {
+      this.buttonAnchors.push(`#btn-theme-${theme.theme}`)
+    })
+    
+    // Create theme buttons
+    themes.forEach(theme => {
+      this.addChangeThemeButton(theme)
+    })
+  }
 
-        this.btn_new = new Button('new-window', app.appendWindow);
-        this.btn_save = new SaveButton(this.vditor.getVditor(), 'btn-save');
-        this.btn_load = new LoadButton(this.vditor.getVditor(), 'btn-load');
+  /**
+   * Add a change theme button
+   * @param {Object} theme - Theme object with theme and color properties
+   */
+  addChangeThemeButton(theme) {
+    const buttonId = `btn-theme-${theme.theme}`
+    const updateTheme = (color) => {
+      this.buttonAnchors.forEach(selector => {
+        const element = document.querySelector(selector)
+        if (element) {
+          element.style.backgroundColor = color
+        }
+      })
     }
+    
+    this.themeButtons[buttonId] = new ChangeThemeButton(
+      buttonId,
+      theme.color,
+      updateTheme
+    )
+  }
+
+  /**
+   * Initialize search box and keyboard shortcuts
+   */
+  initSearchBox() {
+    // Initialize search box (it will work once vditor is ready)
+    this.searchBox = new SearchBox(this.vditor)
+    
+    // Listen for Cmd+F (Mac) or Ctrl+F (Windows/Linux)
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger if user is typing in the search input
+      if (e.target.id === 'search-input') {
+        return
+      }
+      
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modifierKey = isMac ? e.metaKey : e.ctrlKey
+      
+      if (modifierKey && e.key === 'f') {
+        e.preventDefault()
+        if (this.searchBox) {
+          this.searchBox.toggle()
+        }
+      }
+    })
+  }
 }
 
-exports.PIN = PIN;
+module.exports = { PIN }

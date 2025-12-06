@@ -1,12 +1,17 @@
-const {Button} = require('./Button')
+const { Button } = require('./Button')
 
 class ChangeThemeButton extends Button {
-    constructor(id, theme, update_theme) {
-        super(id, () => {
-            update_theme(theme)
-        })
-        // this.update_theme = update_theme
-    }
+  /**
+   * Create a theme change button
+   * @param {string} id - Element ID
+   * @param {string} color - Theme color
+   * @param {Function} updateTheme - Theme update function
+   */
+  constructor(id, color, updateTheme) {
+    super(id, () => {
+      updateTheme(color)
+    })
+  }
 }
 
-exports.ChangeThemeButton = ChangeThemeButton
+module.exports = { ChangeThemeButton }

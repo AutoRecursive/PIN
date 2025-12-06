@@ -1,79 +1,81 @@
-const {app, BrowserWindow} = require('electron')
-const url = require('url')
-const path = require('path')
-// const readline = require('readline');
-// var readlineSync = require('readline-sync');
+const { app, BrowserWindow } = require('electron')
+const { format } = require('url')
+const { join } = require('path')
+const remoteMain = require('@electron/remote/main')
+const config = require('./config')
 
+// Initialize remote module
+remoteMain.initialize()
+
+// Window management
 app.winQueue = []
-function createWindow(BrowserWindow){
-    let win = new BrowserWindow({
-        width: 400,
-        height: 800,
-        frame: false,
-        webPreferences: {
-            nodeIntegration: true,
-            experimentalFeatures: true
-        },
-        vibrancy: 'light'
-    })
-    win.setAlwaysOnTop(true, 'screen')
-    win.loadURL(url.format ({
-        pathname: path.join(__dirname, 'app/index.html'),
-        protocol: 'file',
-        slashes: true
-    }))
-    // win.webContents.openDevTools();
-    return win
+
+/**
+ * Create a new browser window
+ * @returns {BrowserWindow} The created window instance
+ */
+function createWindow() {
+  const win = new BrowserWindow({
+    width: config.WINDOW.WIDTH,
+    height: config.WINDOW.HEIGHT,
+    frame: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    vibrancy: 'light'
+  })
+
+  // Enable remote module for this window
+  remoteMain.enable(win.webContents)
+
+  // Set window always on top
+  win.setAlwaysOnTop(true, 'screen')
+
+  // Load the HTML file
+  win.loadURL(format({
+    pathname: join(__dirname, config.PATHS.HTML),
+    protocol: 'file',
+    slashes: true
+  }))
+
+  // Uncomment to open DevTools
+  // win.webContents.openDevTools()
+
+  return win
 }
 
-app.appendWindow = function (){
-    app.winQueue.push(createWindow(BrowserWindow))
+/**
+ * Append a new window to the queue
+ */
+app.appendWindow = function() {
+  app.winQueue.push(createWindow())
 }
 
-app.removeWindow = function (){
-    app.winQueue[app.winQueue.length-1].close()
+/**
+ * Remove the last window from the queue
+ */
+app.removeWindow = function() {
+  if (app.winQueue.length > 0) {
+    const lastWindow = app.winQueue[app.winQueue.length - 1]
+    lastWindow.close()
     app.winQueue.pop()
+  }
 }
 
-app.loadThemes = function () {
-    return require('./themes.json');
+/**
+ * Load themes configuration
+ * @returns {Array} Array of theme objects
+ */
+app.loadThemes = function() {
+  return require('./themes.json')
 }
 
-function main(){
-    // console.log('Welcome to use PIN. Press h for more info.')
-    // if (process.platform == "win32") {
-    //     console.log('On win32 platform, cli is not support.')
-    //     app.appendWindow()
-    // } else {
-    //     const rl = readline.createInterface({
-    //         input: process.stdin,
-    //         output: process.stdout,
-    //         prompt: 'PIN>>>'
-    //     })
-    //     rl.prompt()
-    //     rl.on('line', (line) => {
-    //         switch(line){
-    //             case 'new':
-    //                 app.appendWindow()
-    //                 rl.prompt()
-    //                 break
-    //             case 'rm':
-    //                 app.removeWindow()
-    //                 rl.prompt()
-    //                 break
-    //             case 'q':
-    //                 console.log("Bye!")
-    //                 process.exit(0)
-    //             default:
-    //                 console.log(`Unrecognized command ${line}`)}
-    //         rl.close()
-    //         rl.prompt()
-    //     }).on('close',function(){
-    //         process.exit(0);
-    //     }); 
-    // }
-    app.appendWindow(); 
-
+/**
+ * Main application entry point
+ */
+function main() {
+  app.appendWindow()
 }
 
 app.on('ready', main)

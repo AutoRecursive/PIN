@@ -4,16 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "./node_modules/electron/dist/electron ./index.js",
+    "start": "electron .",
     "package": "electron-packager . pin --arch=x64 --icon=assets/PIN.ico --out=./out --app-version=0.0.1 --overwrite"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "electron": "^9.3.0",
-    "vditor": "^3.8.7"
+    "@electron/remote": "^2.1.2",
+    "electron": "^39.2.5",
+    "vditor": "^3.11.2"
   },
   "devDependencies": {
-    "electron-packager": "^15.4.0"
+    "@electron/packager": "^18.4.4"
   }
 }
